@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  npm-console:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-dev}
+        BUILD_TIME: ${BUILD_TIME}
+        GIT_COMMIT: ${GIT_COMMIT}
+    container_name: npm-console
+    ports:
+      - "8080:8080"
+    volumes:
+      # Mount project directories for scanning
+      - ./projects:/app/projects:ro
+      # Persist cache and config
+      - npm-console-cache:/home/appuser/.cache
+      - npm-console-config:/home/appuser/.config
+    environment:
+      - NPM_CONSOLE_HOST=0.0.0.0
+      - NPM_CONSOLE_PORT=8080
+      - NPM_CONSOLE_LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "npm-console", "version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Redis for caching (if needed in future)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: npm-console-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #   restart: unless-stopped
+
+volumes:
+  npm-console-cache:
+    driver: local
+  npm-console-config:
+    driver: local
+  # redis-data:
+  #   driver: local
+
+networks:
+  default:
+    name: npm-console-network
