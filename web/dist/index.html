@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>npm-console - 包管理器控制台</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="gradient-bg shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-white text-xl font-bold">
+                            <i class="fas fa-cube mr-2"></i>
+                            npm-console
+                        </h1>
+                    </div>
+                    <div class="hidden md:block ml-10">
+                        <div class="flex items-baseline space-x-4">
+                            <a href="#dashboard" class="nav-link text-white hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                                <i class="fas fa-tachometer-alt mr-1"></i> 仪表板
+                            </a>
+                            <a href="#cache" class="nav-link text-white hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                                <i class="fas fa-database mr-1"></i> 缓存管理
+                            </a>
+                            <a href="#packages" class="nav-link text-white hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                                <i class="fas fa-box mr-1"></i> 包管理
+                            </a>
+                            <a href="#config" class="nav-link text-white hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                                <i class="fas fa-cog mr-1"></i> 配置管理
+                            </a>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <button id="refreshBtn" class="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded-md transition-colors">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section fade-in">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">仪表板</h2>
+                <p class="text-gray-600">包管理器和系统状态概览</p>
+            </div>
+
+            <!-- Status Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white overflow-hidden shadow rounded-lg card-hover">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-database text-blue-500 text-2xl"></i>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">总缓存大小</dt>
+                                    <dd id="totalCacheSize" class="text-lg font-medium text-gray-900">加载中...</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white overflow-hidden shadow rounded-lg card-hover">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-tools text-green-500 text-2xl"></i>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">可用管理器</dt>
+                                    <dd id="availableManagers" class="text-lg font-medium text-gray-900">加载中...</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white overflow-hidden shadow rounded-lg card-hover">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-box text-purple-500 text-2xl"></i>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">全局包</dt>
+                                    <dd id="globalPackages" class="text-lg font-medium text-gray-900">加载中...</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+
+            <!-- Manager Status -->
+            <div class="bg-white shadow rounded-lg mb-8">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">包管理器状态</h3>
+                    <div id="managerStatus" class="space-y-4">
+                        <!-- Manager status will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cache Section -->
+        <div id="cache" class="section hidden">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">缓存管理</h2>
+                <p class="text-gray-600">管理包管理器缓存</p>
+            </div>
+
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">缓存信息</h3>
+                        <button id="clearAllCaches" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                            <i class="fas fa-trash mr-1"></i> 清空所有缓存
+                        </button>
+                    </div>
+                    <div id="cacheList" class="space-y-4">
+                        <!-- Cache list will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Packages Section -->
+        <div id="packages" class="section hidden">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">包管理</h2>
+                <p class="text-gray-600">浏览和管理您的包</p>
+            </div>
+
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">全局包管理</h3>
+                        <div class="flex space-x-2 mb-4">
+                            <input type="text" id="packageSearch" placeholder="搜索包..."
+                                   class="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm">
+                            <button id="searchPackages" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <div class="flex space-x-2 mb-4">
+                            <input type="text" id="packageInstall" placeholder="输入包名安装..."
+                                   class="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm">
+                            <select id="managerSelect" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                <option value="npm">npm</option>
+                                <option value="pnpm">pnpm</option>
+                                <option value="yarn">yarn</option>
+                                <option value="bun">bun</option>
+                            </select>
+                            <button id="installPackage" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                                <i class="fas fa-download mr-1"></i> 安装
+                            </button>
+                        </div>
+                    </div>
+                    <div id="packageList" class="space-y-4">
+                        <!-- Package list will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Config Section -->
+        <div id="config" class="section hidden">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">配置管理</h2>
+                <p class="text-gray-600">管理镜像源和代理设置</p>
+            </div>
+
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">镜像源和代理设置</h3>
+                    <div id="configList" class="space-y-6">
+                        <!-- Config list will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg p-6 flex items-center space-x-3">
+            <i class="fas fa-spinner loading text-blue-500 text-xl"></i>
+            <span class="text-gray-700">加载中...</span>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="fixed top-4 right-4 space-y-2 z-40">
+        <!-- Toasts will be added here -->
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
